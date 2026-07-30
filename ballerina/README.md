@@ -196,42 +196,42 @@ Log into the [AWS Management Console](https://console.aws.amazon.com/console). I
 1. In the AWS Management Console, search for IAM in the services search bar.
 2. Click on IAM
 
-   ![create-user-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/create-user-1.png)
+   ![create-user-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-user-1.png)
 
 3. Click Users
 
-   ![create-user-2.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/create-user-2.png)
+   ![create-user-2.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-user-2.png)
 
 4. Click Create User
 
-   ![create-user-3.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/create-user-3.png)
+   ![create-user-3.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-user-3.png)
 
 5. Provide a suitable name for the user and continue
 
-   ![specify-user-details.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/specify-user-details.png)
+   ![specify-user-details.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/specify-user-details.png)
 
 6. Attach the permissions the application needs — by adding the user to a group, copying permissions from another user, or attaching policies directly — and click next. Grant only the actions your application calls.
 
-   ![set-user-permissions.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/set-user-permissions.png)
+   ![set-user-permissions.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/set-user-permissions.png)
 
 7. Review and create the user
 
-   ![review-create-user.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/review-create-user.png)
+   ![review-create-user.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/review-create-user.png)
 
 ### Get user access keys
 
 1. Click the user that was created
 
-   ![users.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/users.png)
+   ![users.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/users.png)
 
 2. Click `Create access key`
 
-   ![create-access-key-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/create-access-key-1.png)
+   ![create-access-key-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-access-key-1.png)
 
 3. Click your use case and click next.
 
-   ![select-usecase.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/select-usecase.png)
+   ![select-usecase.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/select-usecase.png)
 
 4. Record the access key ID and secret access key. The secret access key is shown only once — store it in a secret manager or a `Config.toml` that is excluded from version control, never in source.
 
-   ![retrieve-access-key.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/master/docs/setup/resources/retrieve-access-key.png)
+   ![retrieve-access-key.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/retrieve-access-key.png)
