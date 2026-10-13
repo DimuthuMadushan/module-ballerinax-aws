@@ -25,6 +25,9 @@ allprojects {
     version = project.version
 
     apply plugin: 'jacoco'
+    jacoco {
+        toolVersion = jacocoVersion
+    }
     apply plugin: 'maven-publish'
 
     repositories {
@@ -76,9 +79,16 @@ subprojects {
 
 def moduleVersion = project.version.replace("-SNAPSHOT", "")
 
-task build {
-    dependsOn(':aws-native:build')
-    dependsOn(':aws-ballerina:build')
+if (tasks.names.contains('build')) {
+    tasks.named('build') {
+        dependsOn(':aws-native:build')
+        dependsOn(':aws-ballerina:build')
+    }
+} else {
+    tasks.register('build') {
+        dependsOn(':aws-native:build')
+        dependsOn(':aws-ballerina:build')
+    }
 }
 
 release {
