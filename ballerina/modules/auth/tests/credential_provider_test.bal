@@ -157,6 +157,90 @@ isolated function testChainedAssumeRoleInitSucceeds() returns error? {
     });
 }
 
+const UNREACHABLE_STS_ENDPOINT = "http://127.0.0.1:1";
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testAssumeRoleUsesCustomStsEndpoint() returns error? {
+    CredentialProvider provider = check new ({
+        roleArn: "arn:aws:iam::111111111111:role/test-role",
+        stsEndpoint: {customEndpoint: UNREACHABLE_STS_ENDPOINT},
+        sourceCredentials: staticAuth
+    });
+    assertStsCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
+    check provider.close();
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testWebIdentityUsesCustomStsEndpoint() returns error? {
+    CredentialProvider provider = check new ({
+        roleArn: "arn:aws:iam::111111111111:role/web-identity-role",
+        webIdentityTokenFile: "modules/auth/tests/resources/web-identity-token",
+        stsEndpoint: {customEndpoint: UNREACHABLE_STS_ENDPOINT}
+    });
+    assertStsCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
+    check provider.close();
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testChainedAssumeRoleUsesPerHopStsEndpoint() returns error? {
+    // The inner hop is resolved first, so its endpoint is the one contacted
+    CredentialProvider provider = check new ({
+        roleArn: "arn:aws:iam::222222222222:role/spoke",
+        sourceCredentials: {
+            roleArn: "arn:aws:iam::111111111111:role/hub",
+            stsEndpoint: {customEndpoint: "http://127.0.0.1:2"},
+            sourceCredentials: staticAuth
+        }
+    });
+    assertStsCallRoutedTo(provider.getCredentials(), "127.0.0.1:2");
+    check provider.close();
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testAssumeRoleWithFipsStsEndpointInitSucceeds() returns error? {
+    CredentialProvider provider = check new ({
+        roleArn: "arn:aws:iam::111111111111:role/test-role",
+        stsRegion: "us-gov-west-1",
+        stsEndpoint: {fips: true},
+        sourceCredentials: staticAuth
+    });
+    check provider.close();
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testInvalidStsEndpointReturnsError() {
+    CredentialProvider|Error provider = new ({
+        roleArn: "arn:aws:iam::111111111111:role/test-role",
+        stsEndpoint: {customEndpoint: "sts endpoint"},
+        sourceCredentials: staticAuth
+    });
+    if provider is CredentialProvider {
+        test:assertFail("Expected an error for an invalid STS endpoint");
+    } else {
+        test:assertEquals(provider.message(), "Error occurred while initializing the credential provider");
+    }
+}
+
+isolated function assertStsCallRoutedTo(Credentials|Error credentials, string address) {
+    if credentials is Credentials {
+        test:assertFail("Expected an error for an unreachable STS endpoint");
+    }
+    test:assertEquals(credentials.message(), "Error occurred while resolving the AWS credentials");
+    error? cause = credentials.cause();
+    string causeMessage = cause is error ? cause.message() : "";
+    test:assertTrue(causeMessage.includes(address), "Unexpected cause message: " + causeMessage);
+}
+
 @test:Config {
     groups: ["credentialProvider"]
 }

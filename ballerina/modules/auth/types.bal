@@ -58,6 +58,8 @@ public type AssumeRoleConfig record {|
     int duration = 3600;
     # Region of the STS endpoint to call
     aws:Region|string stsRegion = aws:US_EAST_1;
+    # Optional STS endpoint options: FIPS/dualstack variants, or a custom endpoint override
+    aws:EndpointConfig stsEndpoint?;
     # Credential source used to authenticate the AssumeRole call
     AuthConfig sourceCredentials = DEFAULT_CREDENTIALS;
 |};
@@ -74,6 +76,8 @@ public type WebIdentityConfig record {|
     string roleSessionName?;
     # Region of the STS endpoint to call
     aws:Region|string stsRegion = aws:US_EAST_1;
+    # Optional STS endpoint options: FIPS/dualstack variants, or a custom endpoint override
+    aws:EndpointConfig stsEndpoint?;
 |};
 
 # Represents credentials obtained from an AWS IAM Identity Center (SSO) session.

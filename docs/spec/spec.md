@@ -164,11 +164,31 @@ Temporary credentials obtained by assuming an IAM role via AWS STS (`AssumeRole`
 | `externalId` | `string?` | — | External ID for third-party cross-account trust, if the role's trust policy requires one |
 | `duration` | `int` | `3600` | Validity period of each assumed-role session, in seconds |
 | `stsRegion` | `Region\|string` | `US_EAST_1` | Region of the STS endpoint to call |
+| `stsEndpoint` | `EndpointConfig?` | — | STS endpoint options: FIPS/dualstack variants, or a custom endpoint override. See [Custom STS Endpoints](#custom-sts-endpoints) |
 | `sourceCredentials` | `AuthConfig` | `DEFAULT_CREDENTIALS` | Credential source used to authenticate the `AssumeRole` call itself |
 
 The `sourceCredentials` being an `AuthConfig` means an `AssumeRoleConfig` can nest another `AssumeRoleConfig`, chaining role assumption. See [STS Role-Chaining Cycles](#74-sts-role-chaining-cycles) for the cycle protection this requires.
 
 *AWS documentation:* [AssumeRole - AWS STS API Reference](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html), [Temporary security credentials in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
+
+#### Custom STS Endpoints
+
+By default, the STS call goes to the regional endpoint for `stsRegion` (`sts.<stsRegion>.amazonaws.com`). `stsEndpoint` (on both `AssumeRoleConfig` and `WebIdentityConfig`) takes the same [`EndpointConfig`](#43-endpointconfig) used for service endpoints:
+
+* `fips` / `dualstack` select the FIPS (`sts-fips.<region>...`) or dualstack variant of the STS endpoint.
+* `customEndpoint` sends the STS call to the given URL as-is (e.g. a VPC interface endpoint without private DNS, or LocalStack). `stsRegion` is still used as the signing region.
+
+```ballerina
+auth:CredentialProvider credProvider = check new ({
+    roleArn: "arn:aws:iam::123456789012:role/reporting-read-only",
+    stsRegion: aws:EU_WEST_1,
+    stsEndpoint: {customEndpoint: "https://vpce-0abc123-xyz.sts.eu-west-1.vpce.amazonaws.com"}
+});
+```
+
+`stsEndpoint` is independent of a connector's own service endpoint: setting `customEndpoint` on a connector does not redirect STS, and vice versa. In a chained assume-role configuration, each hop uses its own `stsEndpoint`.
+
+When `stsEndpoint` is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_STS`, `AWS_ENDPOINT_URL`, `AWS_USE_FIPS_ENDPOINT`). These also cover the STS calls made internally by `ProfileAuthConfig` profiles with `role_arn` and by the web identity source of `DEFAULT_CREDENTIALS`, which `stsEndpoint` does not reach.
 
 ### 3.4 `WebIdentityConfig`
 
@@ -180,6 +200,7 @@ Temporary credentials obtained by exchanging a web identity (OIDC) token for an 
 | `webIdentityTokenFile` | `string` | — | Path to the file containing the OIDC token (JWT); `~` is expanded |
 | `roleSessionName` | `string?` | a generated `ballerina-aws-auth-<timestamp>` | Identifier for the assumed-role session |
 | `stsRegion` | `Region\|string` | `US_EAST_1` | Region of the STS endpoint to call |
+| `stsEndpoint` | `EndpointConfig?` | — | STS endpoint options: FIPS/dualstack variants, or a custom endpoint override. See [Custom STS Endpoints](#custom-sts-endpoints) |
 
 >**Note:** `AssumeRoleWithWebIdentity` is called unsigned — a web identity token is itself the proof of identity, so no SigV4 credentials are needed to make the call.
 

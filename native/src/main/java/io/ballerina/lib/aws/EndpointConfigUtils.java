@@ -26,7 +26,7 @@ import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import java.net.URI;
 
 /**
- * Applies a Ballerina {@code aws.auth:EndpointConfig} value to an AWS SDK
+ * Applies a Ballerina {@code aws:EndpointConfig} value to an AWS SDK
  * service client builder.
  */
 public final class EndpointConfigUtils {
@@ -42,7 +42,7 @@ public final class EndpointConfigUtils {
      * Applies the given endpoint configuration to the client builder.
      *
      * @param builder         the AWS service client builder (e.g. {@code SqsClient.builder()})
-     * @param bEndpointConfig the Ballerina {@code aws.auth:EndpointConfig} value
+     * @param bEndpointConfig the Ballerina {@code aws:EndpointConfig} value
      */
     public static void applyEndpointConfig(AwsClientBuilder<?, ?> builder,
                                            BMap<BString, Object> bEndpointConfig) {

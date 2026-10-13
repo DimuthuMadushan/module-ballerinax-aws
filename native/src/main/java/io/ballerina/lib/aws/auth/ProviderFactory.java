@@ -18,6 +18,7 @@
 
 package io.ballerina.lib.aws.auth;
 
+import io.ballerina.lib.aws.EndpointConfigUtils;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BString;
@@ -38,6 +39,7 @@ import software.amazon.awssdk.services.sso.model.GetRoleCredentialsRequest;
 import software.amazon.awssdk.services.ssooidc.SsoOidcClient;
 import software.amazon.awssdk.services.ssooidc.SsoOidcTokenProvider;
 import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.StsClientBuilder;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 import software.amazon.awssdk.services.sts.auth.StsWebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
@@ -74,6 +76,7 @@ public final class ProviderFactory {
     private static final BString EXTERNAL_ID = StringUtils.fromString("externalId");
     private static final BString DURATION = StringUtils.fromString("duration");
     private static final BString STS_REGION = StringUtils.fromString("stsRegion");
+    private static final BString STS_ENDPOINT = StringUtils.fromString("stsEndpoint");
     private static final BString SOURCE_CREDENTIALS = StringUtils.fromString("sourceCredentials");
     private static final BString WEB_IDENTITY_TOKEN_FILE = StringUtils.fromString("webIdentityTokenFile");
     private static final BString SSO_START_URL = StringUtils.fromString("ssoStartUrl");
@@ -168,10 +171,7 @@ public final class ProviderFactory {
 
     private static AwsCredentialsProvider buildWebIdentityProvider(BMap<BString, Object> config) {
         // AssumeRoleWithWebIdentity is an unsigned call.
-        StsClient stsClient = StsClient.builder()
-                .region(Region.of(config.getStringValue(STS_REGION).getValue()))
-                .credentialsProvider(AnonymousCredentialsProvider.create())
-                .build();
+        StsClient stsClient = buildStsClient(config, AnonymousCredentialsProvider.create());
         return StsWebIdentityTokenFileCredentialsProvider.builder()
                 .stsClient(stsClient)
                 .roleArn(config.getStringValue(ROLE_ARN).getValue())
@@ -184,10 +184,7 @@ public final class ProviderFactory {
     private static AwsCredentialsProvider buildAssumeRoleProvider(BMap<BString, Object> config,
             Set<Object> visited) {
         AwsCredentialsProvider sourceProvider = buildProvider(config.get(SOURCE_CREDENTIALS), visited);
-        StsClient stsClient = StsClient.builder()
-                .region(Region.of(config.getStringValue(STS_REGION).getValue()))
-                .credentialsProvider(sourceProvider)
-                .build();
+        StsClient stsClient = buildStsClient(config, sourceProvider);
         AssumeRoleRequest.Builder request = AssumeRoleRequest.builder()
                 .roleArn(config.getStringValue(ROLE_ARN).getValue())
                 .roleSessionName(resolveRoleSessionName(config))
@@ -200,6 +197,23 @@ public final class ProviderFactory {
                 .refreshRequest(request.build())
                 .asyncCredentialUpdateEnabled(true)
                 .build();
+    }
+
+    /**
+     * Builds the STS client for the configured region, applying the optional
+     * {@code stsEndpoint} options. When it is unset, the SDK's env/profile-based
+     * endpoint settings (e.g. {@code AWS_ENDPOINT_URL_STS}) still apply.
+     */
+    @SuppressWarnings("unchecked")
+    private static StsClient buildStsClient(BMap<BString, Object> config,
+            AwsCredentialsProvider credentialsProvider) {
+        StsClientBuilder builder = StsClient.builder()
+                .region(Region.of(config.getStringValue(STS_REGION).getValue()))
+                .credentialsProvider(credentialsProvider);
+        if (config.containsKey(STS_ENDPOINT)) {
+            EndpointConfigUtils.applyEndpointConfig(builder, (BMap<BString, Object>) config.get(STS_ENDPOINT));
+        }
+        return builder.build();
     }
 
     private static AwsCredentialsProvider buildSsoProvider(BMap<BString, Object> config) {
