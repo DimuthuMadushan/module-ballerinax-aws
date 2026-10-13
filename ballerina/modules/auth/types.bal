@@ -96,6 +96,12 @@ public type SsoAuthConfig record {|
     # When set, used token cached under the session name, enables automatic token refresh.
     # When absent, the legacy token cached under the start URL is used as is
     string ssoSessionName?;
+    # Optional SSO portal endpoint options (`GetRoleCredentials`): FIPS/dualstack
+    # variants, or a custom endpoint override
+    aws:EndpointConfig ssoEndpoint?;
+    # Optional SSO-OIDC endpoint options (token refresh): FIPS/dualstack variants,
+    # or a custom endpoint override. Used only when `ssoSessionName` is set
+    aws:EndpointConfig ssoOidcEndpoint?;
 |};
 
 # Represents credentials supplied by an external process (the AWS

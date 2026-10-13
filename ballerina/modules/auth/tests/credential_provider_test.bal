@@ -168,7 +168,7 @@ isolated function testAssumeRoleUsesCustomStsEndpoint() returns error? {
         stsEndpoint: {customEndpoint: UNREACHABLE_STS_ENDPOINT},
         sourceCredentials: staticAuth
     });
-    assertStsCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
+    assertCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
     check provider.close();
 }
 
@@ -181,7 +181,7 @@ isolated function testWebIdentityUsesCustomStsEndpoint() returns error? {
         webIdentityTokenFile: "modules/auth/tests/resources/web-identity-token",
         stsEndpoint: {customEndpoint: UNREACHABLE_STS_ENDPOINT}
     });
-    assertStsCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
+    assertCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
     check provider.close();
 }
 
@@ -198,7 +198,7 @@ isolated function testChainedAssumeRoleUsesPerHopStsEndpoint() returns error? {
             sourceCredentials: staticAuth
         }
     });
-    assertStsCallRoutedTo(provider.getCredentials(), "127.0.0.1:2");
+    assertCallRoutedTo(provider.getCredentials(), "127.0.0.1:2");
     check provider.close();
 }
 
@@ -231,9 +231,9 @@ isolated function testInvalidStsEndpointReturnsError() {
     }
 }
 
-isolated function assertStsCallRoutedTo(Credentials|Error credentials, string address) {
+isolated function assertCallRoutedTo(Credentials|Error credentials, string address) {
     if credentials is Credentials {
-        test:assertFail("Expected an error for an unreachable STS endpoint");
+        test:assertFail("Expected an error for an unreachable endpoint");
     }
     test:assertEquals(credentials.message(), "Error occurred while resolving the AWS credentials");
     error? cause = credentials.cause();

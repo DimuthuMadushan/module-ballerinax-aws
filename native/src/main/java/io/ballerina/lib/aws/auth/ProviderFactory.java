@@ -31,12 +31,15 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProcessCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.profiles.ProfileFile;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sso.SsoClient;
+import software.amazon.awssdk.services.sso.SsoClientBuilder;
 import software.amazon.awssdk.services.sso.auth.SsoCredentialsProvider;
 import software.amazon.awssdk.services.sso.model.GetRoleCredentialsRequest;
 import software.amazon.awssdk.services.ssooidc.SsoOidcClient;
+import software.amazon.awssdk.services.ssooidc.SsoOidcClientBuilder;
 import software.amazon.awssdk.services.ssooidc.SsoOidcTokenProvider;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.StsClientBuilder;
@@ -82,6 +85,8 @@ public final class ProviderFactory {
     private static final BString SSO_START_URL = StringUtils.fromString("ssoStartUrl");
     private static final BString SSO_REGION = StringUtils.fromString("ssoRegion");
     private static final BString SSO_SESSION_NAME = StringUtils.fromString("ssoSessionName");
+    private static final BString SSO_ENDPOINT = StringUtils.fromString("ssoEndpoint");
+    private static final BString SSO_OIDC_ENDPOINT = StringUtils.fromString("ssoOidcEndpoint");
     private static final BString ACCOUNT_ID = StringUtils.fromString("accountId");
     private static final BString ROLE_NAME = StringUtils.fromString("roleName");
     private static final BString COMMAND = StringUtils.fromString("command");
@@ -201,26 +206,36 @@ public final class ProviderFactory {
 
     /**
      * Builds the STS client for the configured region, applying the optional
-     * {@code stsEndpoint} options. When it is unset, the SDK's env/profile-based
-     * endpoint settings (e.g. {@code AWS_ENDPOINT_URL_STS}) still apply.
+     * {@code stsEndpoint} options.
      */
-    @SuppressWarnings("unchecked")
     private static StsClient buildStsClient(BMap<BString, Object> config,
             AwsCredentialsProvider credentialsProvider) {
         StsClientBuilder builder = StsClient.builder()
                 .region(Region.of(config.getStringValue(STS_REGION).getValue()))
                 .credentialsProvider(credentialsProvider);
-        if (config.containsKey(STS_ENDPOINT)) {
-            EndpointConfigUtils.applyEndpointConfig(builder, (BMap<BString, Object>) config.get(STS_ENDPOINT));
-        }
+        applyEndpointConfig(builder, config, STS_ENDPOINT);
         return builder.build();
+    }
+
+    /**
+     * Applies the {@code aws:EndpointConfig} in the given field, if set. When it is
+     * unset, the SDK's env/profile-based endpoint settings (e.g.
+     * {@code AWS_ENDPOINT_URL_STS}) still apply.
+     */
+    @SuppressWarnings("unchecked")
+    private static void applyEndpointConfig(AwsClientBuilder<?, ?> builder, BMap<BString, Object> config,
+            BString field) {
+        if (config.containsKey(field)) {
+            EndpointConfigUtils.applyEndpointConfig(builder, (BMap<BString, Object>) config.get(field));
+        }
     }
 
     private static AwsCredentialsProvider buildSsoProvider(BMap<BString, Object> config) {
         String ssoRegion = config.getStringValue(SSO_REGION).getValue();
-        SsoClient ssoClient = SsoClient.builder()
-                .region(Region.of(ssoRegion))
-                .build();
+        SsoClientBuilder ssoBuilder = SsoClient.builder()
+                .region(Region.of(ssoRegion));
+        applyEndpointConfig(ssoBuilder, config, SSO_ENDPOINT);
+        SsoClient ssoClient = ssoBuilder.build();
         Supplier<String> accessToken = ssoAccessTokenSupplier(config, ssoRegion);
         // Chain through the public Builder interface
         SsoCredentialsProvider.Builder builder = SsoCredentialsProvider.builder();
@@ -239,10 +254,11 @@ public final class ProviderFactory {
      */
     private static Supplier<String> ssoAccessTokenSupplier(BMap<BString, Object> config, String ssoRegion) {
         if (config.containsKey(SSO_SESSION_NAME)) {
-            SsoOidcClient oidcClient = SsoOidcClient.builder()
+            SsoOidcClientBuilder oidcBuilder = SsoOidcClient.builder()
                     .region(Region.of(ssoRegion))
-                    .credentialsProvider(AnonymousCredentialsProvider.create())
-                    .build();
+                    .credentialsProvider(AnonymousCredentialsProvider.create());
+            applyEndpointConfig(oidcBuilder, config, SSO_OIDC_ENDPOINT);
+            SsoOidcClient oidcClient = oidcBuilder.build();
             SsoOidcTokenProvider tokenProvider = SsoOidcTokenProvider.builder()
                     .ssoOidcClient(oidcClient)
                     .sessionName(config.getStringValue(SSO_SESSION_NAME).getValue())

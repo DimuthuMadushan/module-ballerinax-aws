@@ -217,6 +217,8 @@ Credentials obtained from an AWS IAM Identity Center (SSO) session, exchanging a
 | `accountId` | `string` | AWS account ID to get credentials for |
 | `roleName` | `string` | Permission-set role name to get credentials for |
 | `ssoSessionName` | `string?` | Name of the `sso-session` block in `~/.aws/config` |
+| `ssoEndpoint` | `EndpointConfig?` | SSO portal endpoint options (`GetRoleCredentials`): FIPS/dualstack variants, or a custom endpoint override |
+| `ssoOidcEndpoint` | `EndpointConfig?` | SSO-OIDC endpoint options (token refresh): FIPS/dualstack variants, or a custom endpoint override. Used only when `ssoSessionName` is set |
 
 This requires an active session created out-of-band with `aws sso login`. There are two supported cache-lookup modes, selected by whether `ssoSessionName` is set:
 
@@ -224,6 +226,8 @@ This requires an active session created out-of-band with `aws sso login`. There 
 - **Absent** (legacy flow): the token cached under the SHA-1 hash of `ssoStartUrl` is used as-is, with no automatic refresh; re-running `aws sso login` is required once it expires.
 
 If no cached session is found (or, for the legacy flow, the cached token is invalid), `getCredentials()` returns a `CredentialResolutionError` with a message instructing the caller to run `aws sso login`.
+
+The SSO flow talks to two services with separate endpoints — the SSO portal (`portal.sso.<ssoRegion>.amazonaws.com`) and SSO-OIDC (`oidc.<ssoRegion>.amazonaws.com`) — so each has its own [`EndpointConfig`](#43-endpointconfig) field. A single URL that serves both (e.g. LocalStack) is set on both fields. When a field is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_SSO`, `AWS_ENDPOINT_URL_SSO_OIDC`, `AWS_ENDPOINT_URL`).
 
 *AWS documentation:* [GetRoleCredentials - IAM Identity Center Portal API Reference](https://docs.aws.amazon.com/singlesignon/latest/PortalAPIReference/API_GetRoleCredentials.html), [Configure the AWS CLI to use IAM Identity Center](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
 
