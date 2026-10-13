@@ -205,6 +205,19 @@ isolated function testChainedAssumeRoleUsesPerHopStsEndpoint() returns error? {
 @test:Config {
     groups: ["credentialProvider"]
 }
+isolated function testCustomStsEndpointTakesPrecedenceOverFips() returns error? {
+    CredentialProvider provider = check new ({
+        roleArn: "arn:aws:iam::111111111111:role/test-role",
+        stsEndpoint: {customEndpoint: UNREACHABLE_STS_ENDPOINT, fips: true, dualstack: true},
+        sourceCredentials: staticAuth
+    });
+    assertCallRoutedTo(provider.getCredentials(), "127.0.0.1:1");
+    check provider.close();
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
 isolated function testAssumeRoleWithFipsStsEndpointInitSucceeds() returns error? {
     CredentialProvider provider = check new ({
         roleArn: "arn:aws:iam::111111111111:role/test-role",

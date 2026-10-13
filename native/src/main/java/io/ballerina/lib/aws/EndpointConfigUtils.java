@@ -52,6 +52,8 @@ public final class EndpointConfigUtils {
         if (bEndpointConfig.containsKey(CUSTOM_ENDPOINT)) {
             builder.endpointOverride(URI.create(
                     bEndpointConfig.getStringValue(CUSTOM_ENDPOINT).getValue()));
+            builder.fipsEnabled(false);
+            builder.dualstackEnabled(false);
             return;
         }
         // Set only when explicitly enabled, so the SDK's env/profile-based
