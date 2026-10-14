@@ -178,6 +178,8 @@ By default, the STS call goes to the regional endpoint for `stsRegion` (`sts.<st
 * `fips` / `dualstack` select the FIPS (`sts-fips.<region>...`) or dualstack variant of the STS endpoint.
 * `customEndpoint` sends the STS call to the given URL as-is (e.g. a VPC interface endpoint without private DNS, or LocalStack). `stsRegion` is still used as the signing region.
 
+`customEndpoint` must be an absolute `http` or `https` URL with a host; any other value (for example `localhost:4566`) makes the provider initialization fail. With `http`, the request and the temporary credentials returned by STS are sent unencrypted, so use it only for local testing such as LocalStack.
+
 ```ballerina
 auth:CredentialProvider credProvider = check new ({
     roleArn: "arn:aws:iam::123456789012:role/reporting-read-only",
@@ -227,7 +229,7 @@ This requires an active session created out-of-band with `aws sso login`. There 
 
 If no cached session is found (or, for the legacy flow, the cached token is invalid), `getCredentials()` returns a `CredentialResolutionError` with a message instructing the caller to run `aws sso login`.
 
-The SSO flow talks to two services with separate endpoints — the SSO portal (`portal.sso.<ssoRegion>.amazonaws.com`) and SSO-OIDC (`oidc.<ssoRegion>.amazonaws.com`) — so each has its own [`EndpointConfig`](#43-endpointconfig) field. A single URL that serves both (e.g. LocalStack) is set on both fields. When a field is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_SSO`, `AWS_ENDPOINT_URL_SSO_OIDC`, `AWS_ENDPOINT_URL`).
+The SSO flow talks to two services with separate endpoints, the SSO portal (`portal.sso.<ssoRegion>.amazonaws.com`) and SSO-OIDC (`oidc.<ssoRegion>.amazonaws.com`) — so each has its own [`EndpointConfig`](#43-endpointconfig) field. A single URL that serves both (e.g. LocalStack) is set on both fields. A `customEndpoint` follows the same rules as for [`stsEndpoint`](#custom-sts-endpoints): it must be an absolute `http` or `https` URL, and `http` is only suitable for local testing. When a field is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_SSO`, `AWS_ENDPOINT_URL_SSO_OIDC`, `AWS_ENDPOINT_URL`).
 
 *AWS documentation:* [GetRoleCredentials - IAM Identity Center Portal API Reference](https://docs.aws.amazon.com/singlesignon/latest/PortalAPIReference/API_GetRoleCredentials.html), [Configure the AWS CLI to use IAM Identity Center](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
 

@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add custom STS endpoint support for assume-role and web identity credentials
 - Add custom SSO and SSO-OIDC endpoint support for IAM Identity Center credentials
 
+### Changed
+- Reject custom endpoints that are not absolute http/https URLs at client initialization instead of failing on the first request
+
 ## [1.0.2] - 2026-09-03
 
 ### Fixed

@@ -213,7 +213,7 @@ public final class ProviderFactory {
         StsClientBuilder builder = StsClient.builder()
                 .region(Region.of(config.getStringValue(STS_REGION).getValue()))
                 .credentialsProvider(credentialsProvider);
-        applyEndpointConfig(builder, config, STS_ENDPOINT);
+        applyOptionalEndpoint(builder, config, STS_ENDPOINT);
         return builder.build();
     }
 
@@ -223,7 +223,7 @@ public final class ProviderFactory {
      * {@code AWS_ENDPOINT_URL_STS}) still apply.
      */
     @SuppressWarnings("unchecked")
-    private static void applyEndpointConfig(AwsClientBuilder<?, ?> builder, BMap<BString, Object> config,
+    private static void applyOptionalEndpoint(AwsClientBuilder<?, ?> builder, BMap<BString, Object> config,
             BString field) {
         if (config.containsKey(field)) {
             EndpointConfigUtils.applyEndpointConfig(builder, (BMap<BString, Object>) config.get(field));
@@ -234,7 +234,7 @@ public final class ProviderFactory {
         String ssoRegion = config.getStringValue(SSO_REGION).getValue();
         SsoClientBuilder ssoBuilder = SsoClient.builder()
                 .region(Region.of(ssoRegion));
-        applyEndpointConfig(ssoBuilder, config, SSO_ENDPOINT);
+        applyOptionalEndpoint(ssoBuilder, config, SSO_ENDPOINT);
         SsoClient ssoClient = ssoBuilder.build();
         Supplier<String> accessToken = ssoAccessTokenSupplier(config, ssoRegion);
         // Chain through the public Builder interface
@@ -257,7 +257,7 @@ public final class ProviderFactory {
             SsoOidcClientBuilder oidcBuilder = SsoOidcClient.builder()
                     .region(Region.of(ssoRegion))
                     .credentialsProvider(AnonymousCredentialsProvider.create());
-            applyEndpointConfig(oidcBuilder, config, SSO_OIDC_ENDPOINT);
+            applyOptionalEndpoint(oidcBuilder, config, SSO_OIDC_ENDPOINT);
             SsoOidcClient oidcClient = oidcBuilder.build();
             SsoOidcTokenProvider tokenProvider = SsoOidcTokenProvider.builder()
                     .ssoOidcClient(oidcClient)

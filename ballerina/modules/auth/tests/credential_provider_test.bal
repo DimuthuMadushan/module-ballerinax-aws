@@ -244,6 +244,45 @@ isolated function testInvalidStsEndpointReturnsError() {
     }
 }
 
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testStsEndpointWithoutSchemeReturnsError() {
+    // Parses as scheme `localhost` with no host; rejected at init instead of on the first call
+    assertInvalidStsEndpointRejected("localhost:4566");
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testStsEndpointWithUnderscoreHostReturnsError() {
+    // Underscores are not valid in hostnames, so the URL has no parsable host
+    assertInvalidStsEndpointRejected("http://localstack_main:4566");
+}
+
+@test:Config {
+    groups: ["credentialProvider"]
+}
+isolated function testStsEndpointWithNonHttpSchemeReturnsError() {
+    assertInvalidStsEndpointRejected("ftp://localhost:4566");
+}
+
+isolated function assertInvalidStsEndpointRejected(string endpoint) {
+    CredentialProvider|Error provider = new ({
+        roleArn: "arn:aws:iam::111111111111:role/test-role",
+        stsEndpoint: {customEndpoint: endpoint},
+        sourceCredentials: staticAuth
+    });
+    if provider is CredentialProvider {
+        test:assertFail("Expected an error for the invalid STS endpoint: " + endpoint);
+    }
+    test:assertEquals(provider.message(), "Error occurred while initializing the credential provider");
+    error? cause = provider.cause();
+    string causeMessage = cause is error ? cause.message() : "";
+    test:assertTrue(causeMessage.includes(string `Invalid custom endpoint '${endpoint}'`),
+        "Unexpected cause message: " + causeMessage);
+}
+
 isolated function assertCallRoutedTo(Credentials|Error credentials, string address) {
     if credentials is Credentials {
         test:assertFail("Expected an error for an unreachable endpoint");
