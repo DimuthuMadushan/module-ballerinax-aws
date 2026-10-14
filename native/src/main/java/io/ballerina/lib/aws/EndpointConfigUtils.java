@@ -26,7 +26,7 @@ import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import java.net.URI;
 
 /**
- * Applies a Ballerina {@code aws.auth:EndpointConfig} value to an AWS SDK
+ * Applies a Ballerina {@code aws:EndpointConfig} value to an AWS SDK
  * service client builder.
  */
 public final class EndpointConfigUtils {
@@ -42,7 +42,8 @@ public final class EndpointConfigUtils {
      * Applies the given endpoint configuration to the client builder.
      *
      * @param builder         the AWS service client builder (e.g. {@code SqsClient.builder()})
-     * @param bEndpointConfig the Ballerina {@code aws.auth:EndpointConfig} value
+     * @param bEndpointConfig the Ballerina {@code aws:EndpointConfig} value
+     * @throws IllegalArgumentException if {@code customEndpoint} is not an absolute http or https URL
      */
     public static void applyEndpointConfig(AwsClientBuilder<?, ?> builder,
                                            BMap<BString, Object> bEndpointConfig) {
@@ -50,8 +51,10 @@ public final class EndpointConfigUtils {
             return;
         }
         if (bEndpointConfig.containsKey(CUSTOM_ENDPOINT)) {
-            builder.endpointOverride(URI.create(
+            builder.endpointOverride(parseCustomEndpoint(
                     bEndpointConfig.getStringValue(CUSTOM_ENDPOINT).getValue()));
+            builder.fipsEnabled(false);
+            builder.dualstackEnabled(false);
             return;
         }
         // Set only when explicitly enabled, so the SDK's env/profile-based
@@ -62,5 +65,21 @@ public final class EndpointConfigUtils {
         if (bEndpointConfig.getBooleanValue(DUALSTACK)) {
             builder.dualstackEnabled(true);
         }
+    }
+
+    /**
+     * Parses a custom endpoint, rejecting values that are well-formed URIs but cannot
+     * be called (e.g. {@code localhost:4566}, which parses as scheme {@code localhost}).
+     */
+    private static URI parseCustomEndpoint(String endpoint) {
+        URI uri = URI.create(endpoint);
+        String scheme = uri.getScheme();
+        boolean httpScheme = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+        if (!httpScheme || uri.getHost() == null) {
+            throw new IllegalArgumentException("Invalid custom endpoint '" + endpoint
+                    + "': expected an absolute http or https URL with a valid host "
+                    + "(e.g. http://localhost:4566)");
+        }
+        return uri;
     }
 }

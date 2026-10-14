@@ -164,11 +164,33 @@ Temporary credentials obtained by assuming an IAM role via AWS STS (`AssumeRole`
 | `externalId` | `string?` | — | External ID for third-party cross-account trust, if the role's trust policy requires one |
 | `duration` | `int` | `3600` | Validity period of each assumed-role session, in seconds |
 | `stsRegion` | `Region\|string` | `US_EAST_1` | Region of the STS endpoint to call |
+| `stsEndpoint` | `EndpointConfig?` | — | STS endpoint options: FIPS/dualstack variants, or a custom endpoint override. See [Custom STS Endpoints](#custom-sts-endpoints) |
 | `sourceCredentials` | `AuthConfig` | `DEFAULT_CREDENTIALS` | Credential source used to authenticate the `AssumeRole` call itself |
 
 The `sourceCredentials` being an `AuthConfig` means an `AssumeRoleConfig` can nest another `AssumeRoleConfig`, chaining role assumption. See [STS Role-Chaining Cycles](#74-sts-role-chaining-cycles) for the cycle protection this requires.
 
 *AWS documentation:* [AssumeRole - AWS STS API Reference](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html), [Temporary security credentials in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
+
+#### Custom STS Endpoints
+
+By default, the STS call goes to the regional endpoint for `stsRegion` (`sts.<stsRegion>.amazonaws.com`). `stsEndpoint` (on both `AssumeRoleConfig` and `WebIdentityConfig`) takes the same [`EndpointConfig`](#43-endpointconfig) used for service endpoints:
+
+* `fips` / `dualstack` select the FIPS (`sts-fips.<region>...`) or dualstack variant of the STS endpoint.
+* `customEndpoint` sends the STS call to the given URL as-is (e.g. a VPC interface endpoint without private DNS, or LocalStack). `stsRegion` is still used as the signing region.
+
+`customEndpoint` must be an absolute `http` or `https` URL with a host; any other value (for example `localhost:4566`) makes the provider initialization fail. With `http`, the request and the temporary credentials returned by STS are sent unencrypted, so use it only for local testing such as LocalStack.
+
+```ballerina
+auth:CredentialProvider credProvider = check new ({
+    roleArn: "arn:aws:iam::123456789012:role/reporting-read-only",
+    stsRegion: aws:EU_WEST_1,
+    stsEndpoint: {customEndpoint: "https://vpce-0abc123-xyz.sts.eu-west-1.vpce.amazonaws.com"}
+});
+```
+
+`stsEndpoint` is independent of a connector's own service endpoint: setting `customEndpoint` on a connector does not redirect STS, and vice versa. In a chained assume-role configuration, each hop uses its own `stsEndpoint`.
+
+When `stsEndpoint` is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_STS`, `AWS_ENDPOINT_URL`, `AWS_USE_FIPS_ENDPOINT`). These also cover the STS calls made internally by `ProfileAuthConfig` profiles with `role_arn` and by the web identity source of `DEFAULT_CREDENTIALS`, which `stsEndpoint` does not reach.
 
 ### 3.4 `WebIdentityConfig`
 
@@ -180,6 +202,7 @@ Temporary credentials obtained by exchanging a web identity (OIDC) token for an 
 | `webIdentityTokenFile` | `string` | — | Path to the file containing the OIDC token (JWT); `~` is expanded |
 | `roleSessionName` | `string?` | a generated `ballerina-aws-auth-<timestamp>` | Identifier for the assumed-role session |
 | `stsRegion` | `Region\|string` | `US_EAST_1` | Region of the STS endpoint to call |
+| `stsEndpoint` | `EndpointConfig?` | — | STS endpoint options: FIPS/dualstack variants, or a custom endpoint override. See [Custom STS Endpoints](#custom-sts-endpoints) |
 
 >**Note:** `AssumeRoleWithWebIdentity` is called unsigned — a web identity token is itself the proof of identity, so no SigV4 credentials are needed to make the call.
 
@@ -196,6 +219,8 @@ Credentials obtained from an AWS IAM Identity Center (SSO) session, exchanging a
 | `accountId` | `string` | AWS account ID to get credentials for |
 | `roleName` | `string` | Permission-set role name to get credentials for |
 | `ssoSessionName` | `string?` | Name of the `sso-session` block in `~/.aws/config` |
+| `ssoEndpoint` | `EndpointConfig?` | SSO portal endpoint options (`GetRoleCredentials`): FIPS/dualstack variants, or a custom endpoint override |
+| `ssoOidcEndpoint` | `EndpointConfig?` | SSO-OIDC endpoint options (token refresh): FIPS/dualstack variants, or a custom endpoint override. Used only when `ssoSessionName` is set |
 
 This requires an active session created out-of-band with `aws sso login`. There are two supported cache-lookup modes, selected by whether `ssoSessionName` is set:
 
@@ -203,6 +228,8 @@ This requires an active session created out-of-band with `aws sso login`. There 
 - **Absent** (legacy flow): the token cached under the SHA-1 hash of `ssoStartUrl` is used as-is, with no automatic refresh; re-running `aws sso login` is required once it expires.
 
 If no cached session is found (or, for the legacy flow, the cached token is invalid), `getCredentials()` returns a `CredentialResolutionError` with a message instructing the caller to run `aws sso login`.
+
+The SSO flow talks to two services with separate endpoints, the SSO portal (`portal.sso.<ssoRegion>.amazonaws.com`) and SSO-OIDC (`oidc.<ssoRegion>.amazonaws.com`) — so each has its own [`EndpointConfig`](#43-endpointconfig) field. A single URL that serves both (e.g. LocalStack) is set on both fields. A `customEndpoint` follows the same rules as for [`stsEndpoint`](#custom-sts-endpoints): it must be an absolute `http` or `https` URL, and `http` is only suitable for local testing. When a field is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_SSO`, `AWS_ENDPOINT_URL_SSO_OIDC`, `AWS_ENDPOINT_URL`).
 
 *AWS documentation:* [GetRoleCredentials - IAM Identity Center Portal API Reference](https://docs.aws.amazon.com/singlesignon/latest/PortalAPIReference/API_GetRoleCredentials.html), [Configure the AWS CLI to use IAM Identity Center](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html)
 
