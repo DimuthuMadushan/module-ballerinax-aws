@@ -2,7 +2,7 @@
 distribution = "2201.13.0"
 org = "ballerinax"
 name = "aws"
-version = "1.1.0"
+version = "1.1.1"
 license = ["Apache-2.0"]
 authors = ["Ballerina"]
 keywords = ["Security/Authentication", "Vendor/Amazon", "Type/Library", "AWS", "SigV4", "credentials"]
@@ -20,8 +20,8 @@ graalvmCompatible = true
 [[platform.java21.dependency]]
 groupId = "io.ballerina.lib"
 artifactId = "aws-native"
-version = "1.1.0"
-path = "../native/build/libs/aws-native-1.1.0.jar"
+version = "1.1.1"
+path = "../native/build/libs/aws-native-1.1.1-SNAPSHOT.jar"
 
 [[platform.java21.dependency]]
 groupId = "software.amazon.awssdk"
