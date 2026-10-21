@@ -49,6 +49,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 import software.amazon.awssdk.utils.SdkAutoCloseable;
 import software.amazon.awssdk.utils.UserHomeDirectoryUtils;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -80,6 +81,7 @@ public final class ProviderFactory {
     private static final BString DURATION = StringUtils.fromString("duration");
     private static final BString STS_REGION = StringUtils.fromString("stsRegion");
     private static final BString STS_ENDPOINT = StringUtils.fromString("stsEndpoint");
+    private static final BString CUSTOM_ENDPOINT = StringUtils.fromString("customEndpoint");
     private static final BString SOURCE_CREDENTIALS = StringUtils.fromString("sourceCredentials");
     private static final BString WEB_IDENTITY_TOKEN_FILE = StringUtils.fromString("webIdentityTokenFile");
     private static final BString SSO_START_URL = StringUtils.fromString("ssoStartUrl");
@@ -208,12 +210,24 @@ public final class ProviderFactory {
      * Builds the STS client for the configured region, applying the optional
      * {@code stsEndpoint} options.
      */
+    @SuppressWarnings("unchecked")
     private static StsClient buildStsClient(BMap<BString, Object> config,
             AwsCredentialsProvider credentialsProvider) {
         StsClientBuilder builder = StsClient.builder()
                 .region(Region.of(config.getStringValue(STS_REGION).getValue()))
                 .credentialsProvider(credentialsProvider);
         applyOptionalEndpoint(builder, config, STS_ENDPOINT);
+        // STS uses the Query protocol, whose marshaller drops the custom endpoint's path
+        if (config.containsKey(STS_ENDPOINT)) {
+            BMap<BString, Object> stsEndpoint = (BMap<BString, Object>) config.get(STS_ENDPOINT);
+            if (stsEndpoint.containsKey(CUSTOM_ENDPOINT)) {
+                URI endpoint = URI.create(stsEndpoint.getStringValue(CUSTOM_ENDPOINT).getValue());
+                // Extend the existing override configuration; the Consumer overload replaces it
+                EndpointPathInterceptor.forEndpoint(endpoint).ifPresent(interceptor ->
+                        builder.overrideConfiguration(builder.overrideConfiguration().toBuilder()
+                                .addExecutionInterceptor(interceptor).build()));
+            }
+        }
         return builder.build();
     }
 

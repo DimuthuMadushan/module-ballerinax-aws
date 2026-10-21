@@ -26,6 +26,7 @@ dependencies {
     implementation group: 'org.ballerinalang', name: 'ballerina-runtime', version: "${ballerinaLangVersion}"
     implementation group: 'software.amazon.awssdk', name: 'auth', version: "${awsJavaSdkVersion}"
     implementation group: 'software.amazon.awssdk', name: 'aws-core', version: "${awsJavaSdkVersion}"
+    implementation group: 'software.amazon.awssdk', name: 'sdk-core', version: "${awsJavaSdkVersion}"
     implementation group: 'software.amazon.awssdk', name: 'sts', version: "${awsJavaSdkVersion}"
     implementation group: 'software.amazon.awssdk', name: 'sso', version: "${awsJavaSdkVersion}"
     implementation group: 'software.amazon.awssdk', name: 'ssooidc', version: "${awsJavaSdkVersion}"

@@ -20,6 +20,7 @@ module io.ballerina.lib.aws.auth {
     requires transitive io.ballerina.runtime;
     requires software.amazon.awssdk.auth;
     requires software.amazon.awssdk.awscore;
+    requires software.amazon.awssdk.core;
     requires software.amazon.awssdk.identity.spi;
     requires software.amazon.awssdk.profiles;
     requires software.amazon.awssdk.regions;

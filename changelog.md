@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+- [[9346] Fix the path of a custom STS endpoint being dropped from assume-role and web identity requests](https://github.com/ballerina-platform/ballerina-library/issues/9346)
+
 ## [1.1.0] - 2026-10-14
 
 ### Added
