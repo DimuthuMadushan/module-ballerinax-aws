@@ -32,6 +32,7 @@ import software.amazon.awssdk.auth.credentials.ProcessCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
+import software.amazon.awssdk.core.interceptor.ExecutionInterceptor;
 import software.amazon.awssdk.profiles.ProfileFile;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sso.SsoClient;
@@ -49,7 +50,6 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 import software.amazon.awssdk.utils.SdkAutoCloseable;
 import software.amazon.awssdk.utils.UserHomeDirectoryUtils;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,7 +81,6 @@ public final class ProviderFactory {
     private static final BString DURATION = StringUtils.fromString("duration");
     private static final BString STS_REGION = StringUtils.fromString("stsRegion");
     private static final BString STS_ENDPOINT = StringUtils.fromString("stsEndpoint");
-    private static final BString CUSTOM_ENDPOINT = StringUtils.fromString("customEndpoint");
     private static final BString SOURCE_CREDENTIALS = StringUtils.fromString("sourceCredentials");
     private static final BString WEB_IDENTITY_TOKEN_FILE = StringUtils.fromString("webIdentityTokenFile");
     private static final BString SSO_START_URL = StringUtils.fromString("ssoStartUrl");
@@ -218,15 +217,13 @@ public final class ProviderFactory {
                 .credentialsProvider(credentialsProvider);
         applyOptionalEndpoint(builder, config, STS_ENDPOINT);
         // STS uses the Query protocol, whose marshaller drops the custom endpoint's path
+        // (aws/aws-sdk-java-v2#3387). Only stsEndpoint.customEndpoint is restored; a path in an
+        // endpoint from AWS_ENDPOINT_URL_STS, AWS_ENDPOINT_URL or the profile is still dropped
+        // until the SDK bug is fixed.
         if (config.containsKey(STS_ENDPOINT)) {
-            BMap<BString, Object> stsEndpoint = (BMap<BString, Object>) config.get(STS_ENDPOINT);
-            if (stsEndpoint.containsKey(CUSTOM_ENDPOINT)) {
-                URI endpoint = URI.create(stsEndpoint.getStringValue(CUSTOM_ENDPOINT).getValue());
-                // Extend the existing override configuration; the Consumer overload replaces it
-                EndpointPathInterceptor.forEndpoint(endpoint).ifPresent(interceptor ->
-                        builder.overrideConfiguration(builder.overrideConfiguration().toBuilder()
-                                .addExecutionInterceptor(interceptor).build()));
-            }
+            EndpointConfigUtils.getCustomEndpoint((BMap<BString, Object>) config.get(STS_ENDPOINT))
+                    .flatMap(EndpointPathInterceptor::forEndpoint)
+                    .ifPresent(interceptor -> addExecutionInterceptor(builder, interceptor));
         }
         return builder.build();
     }
@@ -242,6 +239,17 @@ public final class ProviderFactory {
         if (config.containsKey(field)) {
             EndpointConfigUtils.applyEndpointConfig(builder, (BMap<BString, Object>) config.get(field));
         }
+    }
+
+    /**
+     * Adds an execution interceptor while keeping the builder's existing override
+     * configuration. Use this (not {@code overrideConfiguration(Consumer)}, which replaces
+     * the whole configuration) for any override set on the auth clients.
+     */
+    private static void addExecutionInterceptor(AwsClientBuilder<?, ?> builder, ExecutionInterceptor interceptor) {
+        builder.overrideConfiguration(builder.overrideConfiguration().toBuilder()
+                .addExecutionInterceptor(interceptor)
+                .build());
     }
 
     private static AwsCredentialsProvider buildSsoProvider(BMap<BString, Object> config) {

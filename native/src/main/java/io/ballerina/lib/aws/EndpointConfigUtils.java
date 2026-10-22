@@ -24,6 +24,7 @@ import io.ballerina.runtime.api.values.BString;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 
 import java.net.URI;
+import java.util.Optional;
 
 /**
  * Applies a Ballerina {@code aws:EndpointConfig} value to an AWS SDK
@@ -50,9 +51,9 @@ public final class EndpointConfigUtils {
         if (bEndpointConfig == null) {
             return;
         }
-        if (bEndpointConfig.containsKey(CUSTOM_ENDPOINT)) {
-            builder.endpointOverride(parseCustomEndpoint(
-                    bEndpointConfig.getStringValue(CUSTOM_ENDPOINT).getValue()));
+        Optional<URI> customEndpoint = getCustomEndpoint(bEndpointConfig);
+        if (customEndpoint.isPresent()) {
+            builder.endpointOverride(customEndpoint.get());
             builder.fipsEnabled(false);
             builder.dualstackEnabled(false);
             return;
@@ -65,6 +66,20 @@ public final class EndpointConfigUtils {
         if (bEndpointConfig.getBooleanValue(DUALSTACK)) {
             builder.dualstackEnabled(true);
         }
+    }
+
+    /**
+     * Returns the validated {@code customEndpoint} of the given endpoint configuration, if set.
+     *
+     * @param bEndpointConfig the Ballerina {@code aws:EndpointConfig} value
+     * @return the custom endpoint URI, or empty when no custom endpoint is configured
+     * @throws IllegalArgumentException if {@code customEndpoint} is not an absolute http or https URL
+     */
+    public static Optional<URI> getCustomEndpoint(BMap<BString, Object> bEndpointConfig) {
+        if (bEndpointConfig == null || !bEndpointConfig.containsKey(CUSTOM_ENDPOINT)) {
+            return Optional.empty();
+        }
+        return Optional.of(parseCustomEndpoint(bEndpointConfig.getStringValue(CUSTOM_ENDPOINT).getValue()));
     }
 
     /**

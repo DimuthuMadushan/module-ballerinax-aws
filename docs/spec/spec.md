@@ -192,6 +192,8 @@ auth:CredentialProvider credProvider = check new ({
 
 When `stsEndpoint` is not set, the AWS SDK's environment- and profile-based endpoint settings still apply (`AWS_ENDPOINT_URL_STS`, `AWS_ENDPOINT_URL`, `AWS_USE_FIPS_ENDPOINT`). These also cover the STS calls made internally by `ProfileAuthConfig` profiles with `role_arn` and by the web identity source of `DEFAULT_CREDENTIALS`, which `stsEndpoint` does not reach.
 
+> **Note:** A path in an STS endpoint set through these environment or profile settings (e.g. `AWS_ENDPOINT_URL_STS=http://gateway:9090/sts/v1`) is dropped, and the call is sent to the root of the host. This is a bug in the AWS SDK for Java ([aws/aws-sdk-java-v2#3387](https://github.com/aws/aws-sdk-java-v2/issues/3387)) that this package works around only for `stsEndpoint.customEndpoint`. Until it is fixed, set a path-prefixed STS endpoint through `stsEndpoint.customEndpoint`.
+
 ### 3.4 `WebIdentityConfig`
 
 Temporary credentials obtained by exchanging a web identity (OIDC) token for an IAM role via AWS STS (`AssumeRoleWithWebIdentity`) — the mechanism behind EKS IAM Roles for Service Accounts (IRSA) and OIDC-federated CI/CD systems.
